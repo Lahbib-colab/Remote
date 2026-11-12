@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MG Remote">
+<meta name="theme-color" content="#0B0F17">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon.png">
+<title>MG Multimédia • Remote</title>
+<style>
+:root{
+  --bg:#0B0F17;--acc:#2563EB;--acc2:#60A5FA;--acc-glow:rgba(37,99,235,.45);
+  --glass:rgba(255,255,255,.055);--glass2:rgba(255,255,255,.09);--line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.18);
+  --txt:#F5F7FB;--mut:rgba(226,232,246,.60);--mut2:rgba(226,232,246,.38);
+  --ok:#34D399;--warn:#FBBF24;--bad:#F87171;
+  --r:22px;--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --top:68px;--jh:60px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg);overscroll-behavior:none;-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;min-height:100dvh;font:16px/1.35 var(--font);color:var(--txt);background:
+  radial-gradient(120% 55% at 50% -8%,rgba(37,99,235,.30),transparent 62%),
+  radial-gradient(90% 40% at 0% 100%,rgba(37,99,235,.12),transparent 60%),var(--bg);
+  background-attachment:fixed;overscroll-behavior:none;-webkit-font-smoothing:antialiased;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;appearance:none}
+input,textarea{font:inherit;color:inherit;user-select:text;-webkit-user-select:text}
+svg.i{width:1.4em;height:1.4em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.glass{background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 18px 40px -22px rgba(0,0,0,.7)}
+.glass-strong{background:rgba(16,22,36,.86);border:1px solid var(--line2);-webkit-backdrop-filter:blur(34px) saturate(170%);backdrop-filter:blur(34px) saturate(170%)}
+
+/* ---------- En-tête ---------- */
+.top{position:fixed;z-index:20;left:0;right:0;top:0;padding:calc(var(--st) + 10px) calc(16px + var(--sr)) 12px calc(16px + var(--sl));display:flex;align-items:center;gap:10px;border-width:0 0 1px 0;border-radius:0 0 22px 22px;background:rgba(11,15,23,.72)}
+.top h1{margin:0;font-size:18px;font-weight:660;letter-spacing:-.015em;line-height:1.15;white-space:nowrap}
+.top h1 em{font-style:normal;color:var(--acc2);margin:0 .25em}
+.stat{position:relative;display:flex;align-items:center;gap:7px;margin-top:5px;padding:0;font-size:12.5px;font-weight:500;color:var(--mut);max-width:100%;text-align:left}
+.stat::after{content:"";position:absolute;inset:-14px -10px}
+.stat b{font-weight:650;color:var(--bad)}.stat[data-s=on] b{color:#a7f3d0}.stat[data-s=wait] b{color:#fde68a}
+.stat .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.stat .sub:not(:empty)::before{content:"·";margin-right:7px;color:var(--mut2)}
+.top .grow{flex:1;min-width:0}
+.pill{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--glass2);border:1px solid var(--line);color:var(--txt);min-height:36px}
+.led{width:9px;height:9px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 3px rgba(248,113,113,.18)}
+.stat[data-s=on] .led{background:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.18),0 0 12px rgba(52,211,153,.8)}
+.stat[data-s=wait] .led{background:var(--warn);box-shadow:0 0 0 3px rgba(251,191,36,.18);animation:pulse 1.1s ease-in-out infinite}
+.iconbtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--glass2);border:1px solid var(--line);color:var(--txt)}
+.iconbtn:active{transform:scale(.94)}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- Corps ---------- */
+main{padding:calc(var(--st) + var(--top) + 16px) calc(16px + var(--sr)) calc(var(--jh) + var(--sb) + 28px) calc(16px + var(--sl));display:flex;flex-direction:column;gap:14px;max-width:560px;margin:0 auto}
+.card{border-radius:var(--r);padding:16px}
+.card h2{margin:0 0 12px;font-size:13px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);display:flex;align-items:center;gap:8px}
+.hint{border-radius:18px;padding:12px 14px;font-size:13.5px;color:var(--mut);display:flex;gap:10px;align-items:flex-start}
+.hint b{color:var(--txt)}.hint button{margin-left:auto;color:var(--acc2);font-weight:600;padding:2px 4px}
+
+/* Télémétrie */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tcard{border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:11px;min-width:0;transition:border-color .25s,box-shadow .25s,opacity .25s;position:relative}
+.tcard[data-on=true]{border-color:rgba(37,99,235,.7);box-shadow:0 0 0 1px rgba(37,99,235,.35),0 14px 34px -18px var(--acc-glow)}
+.tcard.stale{opacity:.62}
+.thead{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.thead b{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mut2)}.tcard.up .dot{background:var(--ok);box-shadow:0 0 10px rgba(52,211,153,.8)}
+.row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+.row b{margin-left:auto;font-weight:650;color:var(--txt);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bat{width:26px;height:13px;border:1.6px solid var(--mut);border-radius:4px;position:relative;flex:none}
+.bat::after{content:"";position:absolute;right:-4.5px;top:3px;width:2px;height:4px;border-radius:0 2px 2px 0;background:var(--mut)}
+.bat i{position:absolute;inset:1.5px;width:calc(var(--p,0)*1% - 3px);max-width:calc(100% - 3px);border-radius:2px;background:var(--ok);transition:width .6s ease,background .3s}
+.bat.low i{background:var(--bad)}.bat.mid i{background:var(--warn)}
+.bolt{color:var(--warn);width:1em;height:1em;display:none}.tcard.chg .bolt{display:block}
+.vbar{flex:1;height:5px;border-radius:5px;background:rgba(255,255,255,.10);overflow:hidden;min-width:20px}.vbar i{display:block;height:100%;width:calc(var(--p,0)*1%);background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:5px;transition:width .35s ease}
+.media{font-size:12.5px;color:var(--txt);line-height:1.3;min-height:2.6em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.media small{display:block;color:var(--mut2);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1px;font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:11px;font-weight:650;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--mut);border:1px solid var(--line)}
+.chip.on{color:#bfdbfe;background:rgba(37,99,235,.22);border-color:rgba(37,99,235,.5)}.chip.ok{color:#a7f3d0;background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.4)}.chip.bad{color:#fecaca;background:rgba(248,113,113,.14);border-color:rgba(248,113,113,.4)}
+
+/* Contrôle */
+.seg{position:relative;display:grid;grid-template-columns:repeat(3,1fr);padding:4px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:14px}
+.seg i{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/3);border-radius:12px;background:linear-gradient(180deg,#3b82f6,var(--acc));box-shadow:0 6px 18px -6px var(--acc-glow);transform:translateX(calc(var(--k,0)*100%));transition:transform .28s cubic-bezier(.3,.9,.3,1)}
+.seg button{position:relative;z-index:1;padding:12px 4px;min-height:44px;font-size:13.5px;font-weight:600;color:var(--mut);border-radius:12px;transition:color .2s;white-space:nowrap}
+.seg button[aria-checked=true]{color:#fff}
+.primary{width:100%;min-height:86px;border-radius:24px;display:flex;align-items:center;gap:12px;padding:14px 18px;text-align:left;color:#fff;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#3b82f6 0%,var(--acc) 48%,#1e40af 100%);box-shadow:0 16px 44px -14px var(--acc-glow),0 1px 0 rgba(255,255,255,.28) inset;transition:transform .12s,filter .2s}
+.primary::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.22) 50%,transparent 65%);transform:translateX(-120%);animation:shine 5s ease-in-out infinite}
+@keyframes shine{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.primary:active{transform:scale(.975);filter:brightness(1.08)}
+.primary .ic{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.18);flex:none}
+.primary .ic svg{width:28px;height:28px}
+.primary b{display:block;font-size:18px;font-weight:680;letter-spacing:-.02em;white-space:nowrap}
+.primary small{display:block;font-size:12.5px;opacity:.82;margin-top:2px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.act{border-radius:18px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:14px;font-weight:620;text-align:center;line-height:1.2;min-height:84px;justify-content:center;background:var(--glass2);border:1px solid var(--line);transition:transform .12s,background .2s}
+.act:active{transform:scale(.96)}
+.act svg{width:26px;height:26px}
+.act.ok{color:#a7f3d0}.act.ok:active{background:rgba(52,211,153,.18)}
+.act.bad{color:#fecaca}.act.bad:active{background:rgba(248,113,113,.18)}
+.vol{margin-top:16px}
+.vol .lab{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--mut);margin-bottom:10px}.vol .lab b{color:var(--txt);font-variant-numeric:tabular-nums;font-size:15px}
+.rng{display:flex;align-items:center;gap:12px;color:var(--mut)}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:40px;background:none;margin:0;--v:50%}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:8px;background:linear-gradient(90deg,var(--acc2) 0,var(--acc) var(--v),rgba(255,255,255,.12) var(--v));}
+input[type=range]::-moz-range-track{height:8px;border-radius:8px;background:rgba(255,255,255,.12)}
+input[type=range]::-moz-range-progress{height:8px;border-radius:8px;background:var(--acc)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#fff;margin-top:-11px;box-shadow:0 4px 14px rgba(0,0,0,.5),0 0 0 6px rgba(37,99,235,.28)}
+input[type=range]::-moz-range-thumb{width:30px;height:30px;border:0;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+input[type=range]:focus-visible{outline:2px solid var(--acc2);outline-offset:4px;border-radius:8px}
+
+/* Annonces vocales */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.say{border-radius:20px;padding:14px 6px 12px;min-height:118px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:13px;font-weight:640;line-height:1.2;text-align:center;background:var(--glass2);border:1px solid var(--line);position:relative;transition:transform .12s,background .2s,border-color .2s}
+.say:active{transform:scale(.95);background:rgba(37,99,235,.2)}
+.say .ring{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:rgba(37,99,235,.16);color:#bfdbfe;border:1px solid rgba(37,99,235,.4)}
+.say .ring svg{width:24px;height:24px}
+.say.sent{border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.12)}
+.say.sent::after{content:"Envoyé";position:absolute;top:7px;right:9px;font-size:10px;font-weight:700;color:#a7f3d0;letter-spacing:.05em;text-transform:uppercase}
+.free{display:flex;gap:10px;margin-top:12px}
+.free input{flex:1;min-width:0;height:50px;border-radius:16px;padding:0 16px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:16px;outline:0;transition:border-color .2s,box-shadow .2s}
+.free input::placeholder{color:var(--mut2)}.free input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(37,99,235,.25)}
+.send{height:50px;padding:0 18px;border-radius:16px;background:var(--acc);color:#fff;font-weight:650;display:flex;align-items:center;gap:8px;box-shadow:0 10px 26px -10px var(--acc-glow)}
+.send:disabled{opacity:.4;box-shadow:none}.send:not(:disabled):active{transform:scale(.96)}
+
+/* Journal */
+.drawer{position:fixed;z-index:30;left:0;right:0;bottom:0;height:min(64vh,560px);height:min(64dvh,560px);border-radius:26px 26px 0 0;border-width:1px 0 0 0;display:flex;flex-direction:column;transform:translateY(calc(100% - var(--jh) - var(--sb)));transition:transform .36s cubic-bezier(.25,.9,.3,1)}
+.drawer[data-open=true]{transform:none}
+.dh{height:var(--jh);flex:none;display:flex;align-items:center;gap:10px;padding:0 calc(18px + var(--sr)) 0 calc(18px + var(--sl));position:relative;width:100%;text-align:left}
+.dh::before{content:"";position:absolute;top:7px;left:50%;width:38px;height:5px;margin-left:-19px;border-radius:5px;background:rgba(255,255,255,.28)}
+.dh b{font-size:15px;font-weight:650;margin-top:6px}.dh .cnt{margin-top:6px;font-size:12px;font-weight:700;color:#bfdbfe;background:rgba(37,99,235,.3);padding:2px 9px;border-radius:999px}
+.dh .chev{margin-left:auto;margin-top:6px;transition:transform .3s}.drawer[data-open=true] .chev{transform:rotate(180deg)}
+.dh .newdot{width:8px;height:8px;border-radius:50%;background:var(--acc2);margin-top:6px;display:none;box-shadow:0 0 10px var(--acc2)}.drawer[data-new=true]:not([data-open=true]) .newdot{display:block}
+.jbar{display:flex;gap:8px;padding:0 18px 8px;flex:none}
+.jbar button{font-size:12.5px;font-weight:600;color:var(--mut);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line)}
+.jbar button[aria-pressed=true]{color:#bfdbfe;background:rgba(37,99,235,.24);border-color:rgba(37,99,235,.55)}
+.jl{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 calc(14px + var(--sr)) calc(var(--sb) + 18px) calc(14px + var(--sl));overscroll-behavior:contain;user-select:text;-webkit-user-select:text}
+.je{display:grid;grid-template-columns:64px 10px 1fr;gap:8px;align-items:start;padding:8px 4px;border-top:1px solid rgba(255,255,255,.06);font-size:13.5px;line-height:1.35}
+.je time{color:var(--mut2);font-variant-numeric:tabular-nums;font-size:12px;padding-top:2px}
+.je i{width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--mut2)}
+.je.tx i{background:var(--acc2)}.je.rx i{background:var(--ok)}.je.err i{background:var(--bad)}.je.err span{color:#fecaca}.je.sys span{color:var(--mut)}
+.jempty{padding:28px 10px;text-align:center;color:var(--mut2);font-size:14px}
+
+/* Feuille de réglages */
+.sheet{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;pointer-events:none}
+.sheet[hidden]{display:none}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;transition:opacity .3s;pointer-events:auto}
+.panel{position:relative;width:100%;max-width:560px;margin:0 auto;border-radius:28px 28px 0 0;padding:14px calc(20px + var(--sr)) calc(var(--sb) + 22px) calc(20px + var(--sl));transform:translateY(105%);transition:transform .38s cubic-bezier(.25,.9,.3,1);pointer-events:auto;max-height:92vh;max-height:92dvh;overflow:auto;-webkit-overflow-scrolling:touch}
+.sheet[data-open=true] .scrim{opacity:1}.sheet[data-open=true] .panel{transform:none}
+.grab{width:38px;height:5px;border-radius:5px;background:rgba(255,255,255,.28);margin:0 auto 12px}
+.panel h2{margin:0 0 4px;font-size:22px;letter-spacing:-.02em}.panel p.lead{margin:0 0 14px;color:var(--mut);font-size:14px}
+.fld{display:block;margin:12px 0}.fld span{display:block;font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.fld input[type=text],.fld input[type=url],.fld input[type=password]{width:100%;height:50px;border-radius:14px;padding:0 14px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:16px;outline:0}
+.fld input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(37,99,235,.25)}
+.fld small{display:block;margin-top:6px;color:var(--mut2);font-size:12.5px;line-height:1.4}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin:14px 0}
+.sw b{font-size:15px;display:block}.sw small{color:var(--mut);font-size:12.5px}
+.tg{width:52px;height:32px;border-radius:32px;background:rgba(255,255,255,.18);position:relative;flex:none;transition:background .25s}.tg::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);transition:transform .25s}
+.tg[aria-checked=true]{background:var(--acc)}.tg[aria-checked=true]::after{transform:translateX(20px)}
+.btns{display:flex;gap:10px;margin-top:16px}.btns button{flex:1;height:52px;border-radius:16px;font-weight:650;background:var(--glass2);border:1px solid var(--line)}
+.btns .go{background:var(--acc);border-color:transparent;box-shadow:0 10px 26px -10px var(--acc-glow);color:#fff}
+.warn{font-size:13px;color:#fde68a;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:12px;padding:10px 12px;margin-top:10px}
+.forget{display:block;margin:16px auto 0;color:var(--bad);font-size:14px;font-weight:600;padding:8px}
+
+#toast{position:fixed;z-index:60;left:50%;top:calc(var(--st) + var(--top) + 18px);transform:translate(-50%,-14px);opacity:0;padding:11px 18px;border-radius:18px;font-size:14px;font-weight:600;width:max-content;max-width:calc(100vw - 32px);text-align:center;pointer-events:none;transition:opacity .25s,transform .25s;background:rgba(20,28,46,.92);border:1px solid var(--line2);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+#toast.on{opacity:1;transform:translate(-50%,0)}#toast.err{color:#fecaca;border-color:rgba(248,113,113,.5)}#toast.ok{color:#a7f3d0;border-color:rgba(52,211,153,.5)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+@media (max-width:350px){.say{font-size:12px}.seg button{font-size:12.5px}}
+</style>
+</head>
+<body>
+
+<header class="top glass">
+  <div class="grow"><h1>MG Multimédia <em>•</em> Remote</h1>
+    <button class="stat" id="pill" data-s="off" aria-live="polite" aria-label="État de la connexion : touchez pour reconnecter"><span class="led"></span><b id="pillT">Déconnecté</b><span class="sub" id="sub"></span></button></div>
+  <button class="iconbtn" id="gear" aria-label="Réglages"></button>
+</header>
+
+<main>
+  <div class="hint glass" id="hint" hidden><span id="hintI"></span><div><b>Plein écran sur iPhone</b><br>Touchez <b>Partager</b> puis <b>Sur l’écran d’accueil</b> : la barre de Safari disparaît.</div><button id="hintX" aria-label="Fermer">OK</button></div>
+
+  <section class="tabs" aria-label="État des tablettes" id="tabs"></section>
+
+  <section class="card glass" aria-labelledby="hCtl">
+    <h2 id="hCtl"><span id="icCtl"></span>Contrôle multimédia</h2>
+    <div class="seg" role="radiogroup" aria-label="Tablette ciblée" id="seg" style="--k:0">
+      <i></i>
+      <button role="radio" aria-checked="true" data-t="both">Les 2 tablettes</button>
+      <button role="radio" aria-checked="false" data-t="t1">Tablette 1</button>
+      <button role="radio" aria-checked="false" data-t="t2">Tablette 2</button>
+    </div>
+    <button class="primary" id="sync"><span class="ic" id="syncIc"></span><span><b>Lancer Synchro / Pause</b><small id="syncSub">Démarrage simultané des tablettes</small></span></button>
+    <div class="duo">
+      <button class="act ok" id="unlock"><span id="icUn"></span>Autoriser le contenu</button>
+      <button class="act bad" id="lock"><span id="icLk"></span>Stop / Bloquer</button>
+    </div>
+    <div class="vol">
+      <div class="lab"><span>Volume à distance</span><b id="volV">50 %</b></div>
+      <div class="rng"><span id="icVd"></span><input type="range" id="vol" min="0" max="100" step="1" value="50" aria-label="Volume à distance"><span id="icVu"></span></div>
+    </div>
+  </section>
+
+  <section class="card glass" aria-labelledby="hSay">
+    <h2 id="hSay"><span id="icSay"></span>Annonces vocales</h2>
+    <div class="grid3" id="grid3"></div>
+    <form class="free" id="free" autocomplete="off">
+      <input id="say" type="text" inputmode="text" enterkeyhint="send" maxlength="240" placeholder="Votre annonce…" aria-label="Annonce vocale personnalisée">
+      <button class="send" id="sendBtn" type="submit" disabled>Envoyer</button>
+    </form>
+  </section>
+</main>
+
+<aside class="drawer glass-strong" id="jr" data-open="false" aria-label="Journal d’activité">
+  <button class="dh" id="jToggle" aria-expanded="false" aria-controls="jl"><b>Journal d’activité</b><span class="cnt" id="jCnt">0</span><span class="newdot"></span><span class="chev" id="jChev"></span></button>
+  <div class="jbar"><button id="jFilter" aria-pressed="false">Erreurs seulement</button><button id="jClear">Effacer</button></div>
+  <div class="jl" id="jl" role="log" aria-live="polite"></div>
+</aside>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="scrim" data-close></div>
+  <div class="panel glass-strong" role="dialog" aria-modal="true" aria-label="Réglages">
+    <div class="grab"></div>
+    <h2>Réglages</h2>
+    <p class="lead">Connexion au serveur de synchronisation MG.</p>
+    <div class="sw"><div><b>Mode démonstration</b><small>Simule deux tablettes, sans serveur.</small></div><button class="tg" id="demo" role="switch" aria-checked="false" aria-label="Mode démonstration"></button></div>
+    <label class="fld"><span>Serveur</span><input id="cUrl" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="wss://192.168.43.1:8443/sync"><small>Adresse affichée par <b>infos-serveur.sh</b> sur la tablette 1.</small></label>
+    <label class="fld"><span>Code de jumelage</span><input id="cCode" type="text" inputmode="numeric" maxlength="6" placeholder="6 chiffres (première connexion)" autocomplete="off"><small id="cCodeS">Inutile une fois l’iPhone jumelé.</small></label>
+    <label class="fld"><span>Nom de cet iPhone</span><input id="cName" type="text" maxlength="24" placeholder="iPhone"></label>
+    <div class="warn" id="warn" hidden></div>
+    <div class="btns"><button data-close>Fermer</button><button class="go" id="cSave">Enregistrer et connecter</button></div>
+    <button class="forget" id="forget">Oublier le jumelage de cet iPhone</button>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(()=>{"use strict";
+/* ===================================================================================== outils */
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-3);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const P={ /* icônes en traits fins (24×24) */
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>',
+  pause:'<rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" stroke="none"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" stroke="none"/>',
+  unlock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 7.6-1.7M12 14.5v2.5"/>',
+  lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2.5"/>',
+  vd:'<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 10a3 3 0 0 1 0 4"/>',
+  vu:'<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>',
+  seat:'<circle cx="12" cy="4.8" r="2.2"/><path d="M7.5 9.5h9l-1.2 7.5h-6.6zM16.5 9.5l-9 7M9 21h6"/>',
+  food:'<path d="M6 3v7a2 2 0 0 0 2 2v9M10 3v7a2 2 0 0 1-2 2M8 3v5M17 21V3c-2 1.5-3 4-3 7.5V14h3"/><path d="M3 3l18 18"/>',
+  voldn:'<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 12h5"/>',
+  say:'<path d="M12 3.5a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0v-5a3 3 0 0 0-3-3z"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/>',
+  ctl:'<rect x="6.5" y="2.5" width="11" height="19" rx="3"/><circle cx="12" cy="15.5" r="1.4"/><path d="M10 6h4"/>',
+  chev:'<path d="M6 14l6-6 6 6"/>',
+  bolt:'<path d="M13 2.5L5.5 13H11l-1 8.5L18.5 10H13z" fill="currentColor" stroke="none"/>',
+  vol:'<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6"/>',
+  share:'<path d="M12 15V3.5M8 7l4-4 4 4M6.5 11H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5"/>',
+  send:'<path d="M21 3L10.5 13.5M21 3l-6.5 18-4-8.5L2 8.5z"/>'
+};
+const ic=(n,cls="")=>`<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[n]}</svg>`;
+const fill=(id,n)=>{const e=$("#"+id);if(e)e.innerHTML=ic(n)};
+
+/* ===================================================================================== réglages */
+const KEY="mg.remote.cfg";
+const DEF={url:"",code:"",id:"",token:"",name:"iPhone",demo:null,hintOff:false};
+let cfg={...DEF};try{cfg={...DEF,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch{}};
+if(!cfg.id){cfg.id="rm-"+uid();save()}
+if(cfg.demo===null){cfg.demo=!cfg.url;save()}     // premier lancement sans serveur : démonstration
+
+/* ===================================================================================== état */
+const NAMES={t1:"Tablette 1",t2:"Tablette 2",both:"Les 2 tablettes"};
+const blank=()=>({online:false,battery:null,charging:false,volume:null,media:"",playing:false,locked:null,seen:0});
+const S={conn:"off",why:"",rtt:null,offset:0,target:"both",tabs:{t1:blank(),t2:blank()},pending:new Map(),drag:false};
+const targets=()=>S.target==="both"?["t1","t2"]:[S.target];
+
+/* ===================================================================================== journal */
+const J={items:[],only:false,open:false};
+const hms=d=>d.toLocaleTimeString("fr-FR",{hour12:false});
+function log(kind,text){
+  J.items.unshift({k:kind,t:new Date(),x:text});if(J.items.length>300)J.items.length=300;
+  $("#jCnt").textContent=J.items.length;
+  if(!J.open)$("#jr").dataset.new="true";
+  drawLog();
+}
+function drawLog(){
+  const l=J.items.filter(e=>!J.only||e.k==="err"),box=$("#jl");
+  box.innerHTML=l.length?l.map(e=>`<div class="je ${e.k}"><time>${hms(e.t)}</time><i></i><span>${esc(e.x)}</span></div>`).join(""):`<div class="jempty">${J.only?"Aucune erreur.":"Aucune activité pour l’instant."}</div>`;
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function setDrawer(o){J.open=o;const d=$("#jr");d.dataset.open=o;d.dataset.new="false";$("#jToggle").setAttribute("aria-expanded",o)}
+
+/* ===================================================================================== retours visuels */
+let tt=0;
+function toast(msg,kind=""){const t=$("#toast");t.textContent=msg;t.className="on "+kind;clearTimeout(tt);tt=setTimeout(()=>t.className="",2400)}
+
+/* ===================================================================================== télémétrie */
+function buildTabs(){
+  $("#tabs").innerHTML=["t1","t2"].map(d=>`<article class="tcard glass" data-dev="${d}" data-on="true">
+    <div class="thead"><b>${NAMES[d]}</b><span class="dot"></span></div>
+    <div class="row" aria-label="Batterie"><span class="bat" data-bat><i></i></span>${ic("bolt","bolt")}<b data-bv>—</b></div>
+    <div class="row" aria-label="Volume">${ic("vol")}<span class="vbar" data-vb><i></i></span><b data-vv>—</b></div>
+    <div class="media" data-media><small>En cours</small><span>—</span></div>
+    <div class="chips" data-chips></div></article>`).join("");
+}
+function drawTab(d){
+  const s=S.tabs[d],c=$(`.tcard[data-dev=${d}]`);if(!c)return;
+  const fresh=Date.now()-s.seen<20000&&s.seen>0;
+  c.classList.toggle("up",s.online&&fresh);c.classList.toggle("stale",!(s.online&&fresh));c.classList.toggle("chg",!!s.charging);
+  c.dataset.on=S.target==="both"||S.target===d;
+  const b=$("[data-bat]",c),p=s.battery==null?0:clamp(Math.round(s.battery),0,100);
+  b.style.setProperty("--p",p);b.className="bat"+(s.battery!=null&&p<20?" low":s.battery!=null&&p<40?" mid":"");
+  $("[data-bv]",c).textContent=s.battery==null?"—":p+" %";
+  const v=s.volume==null?0:clamp(Math.round(s.volume),0,100);$("[data-vb]",c).style.setProperty("--p",v);$("[data-vv]",c).textContent=s.volume==null?"—":v+" %";
+  $("[data-media] span",c).textContent=!s.online&&s.seen?"Hors ligne":s.media||(s.online?"Aucun média":"—");
+  $("[data-chips]",c).innerHTML=(s.online?`<span class="chip ${s.playing?"on":""}">${s.playing?"Lecture":"Pause"}</span>`:`<span class="chip bad">Hors ligne</span>`)+(s.locked==null?"":`<span class="chip ${s.locked?"bad":"ok"}">${s.locked?"Bloqué":"Autorisé"}</span>`);
+}
+const drawTabs=()=>{drawTab("t1");drawTab("t2");drawPrimary()};
+function applyState(d,m){
+  if(!S.tabs[d])return;const s=S.tabs[d];
+  for(const k of ["battery","charging","volume","media","playing","locked"])if(m[k]!==undefined)s[k]=m[k];
+  s.online=m.online!==undefined?!!m.online:true;s.seen=Date.now();drawTab(d);drawPrimary();
+  if(d&&!S.drag&&targets().includes(d)&&m.volume!=null)setVol(m.volume,true);
+}
+
+/* ===================================================================================== connexion : pastille d'état */
+function setConn(c,why=""){
+  S.conn=c;S.why=why;
+  const pill=$("#pill"),T=$("#pillT");
+  const on=c==="on",wait=c==="connecting"||c==="handshake"||c==="retry";
+  pill.dataset.s=on?"on":wait?"wait":"off";
+  T.textContent=on?"Connecté":c==="retry"?"Reconnexion…":wait?"Connexion…":"Déconnecté";
+  $("#sub").textContent=on?[cfg.demo?"démonstration":"",S.rtt!=null?Math.round(S.rtt)+" ms":""].filter(Boolean).join(" · "):why;
+}
+
+/* ===================================================================================== liaison WebSocket (reconnexion automatique) */
+function WsLink(h){
+  let ws=null,tries=0,timer=null,hb=null,last=0,stopped=false;
+  const url=()=>cfg.url.trim();
+  function raw(o){if(ws&&ws.readyState===1){ws.send(JSON.stringify(o));return true}return false}
+  function startHb(){stopHb();hb=setInterval(()=>{if(!ws)return;if(Date.now()-last>22000){log("err","Plus de réponse du serveur : reconnexion");try{ws.close()}catch{}return}raw({t:"ping",id:uid(),t0:Date.now()})},7000)}
+  function stopHb(){clearInterval(hb);hb=null}
+  function hello(){
+    if(cfg.token)raw({t:"hello",role:"remote",v:1,id:cfg.id,name:cfg.name,token:cfg.token});
+    else if(/^\d{6}$/.test(cfg.code))raw({t:"pair",role:"remote",v:1,id:cfg.id,name:cfg.name,code:cfg.code});
+    else{h.status("off","Code de jumelage requis (⚙)");log("err","Jumelage requis : saisissez le code à 6 chiffres dans les réglages");}
+  }
+  function open(){
+    clearTimeout(timer);if(stopped)return;
+    const u=url();
+    if(!/^wss?:\/\//i.test(u)){h.status("off","Adresse du serveur à renseigner (⚙)");return}
+    h.status(tries?"retry":"connecting");
+    try{ws=new WebSocket(u)}catch(e){h.status("retry");log("err","Adresse refusée : "+e.message);return schedule()}
+    const mine=ws;
+    ws.onopen=()=>{if(mine!==ws)return;last=Date.now();h.status("handshake");log("sys","Liaison établie, authentification…");hello();startHb()};
+    ws.onmessage=e=>{if(mine!==ws)return;last=Date.now();let m;try{m=JSON.parse(e.data)}catch{return}h.msg(m)};
+    ws.onclose=()=>{if(mine!==ws)return;stopHb();ws=null;if(stopped)return;if(S.conn==="on")log("err","Connexion perdue");h.status("retry");schedule()};
+    ws.onerror=()=>{};
+  }
+  function schedule(){
+    if(stopped)return;clearTimeout(timer);
+    const d=Math.min(15000,800*Math.pow(1.7,tries++))*(.8+Math.random()*.4);
+    timer=setTimeout(open,d);
+  }
+  return{
+    start(){stopped=false;tries=0;open()},
+    stop(){stopped=true;clearTimeout(timer);stopHb();const w=ws;ws=null;try{w&&w.close()}catch{}},
+    kick(){if(stopped)return;if(!ws||ws.readyState>1){tries=0;open()}},             // iOS suspend les sockets en arrière-plan
+    reset(){tries=0},
+    send(o){return S.conn==="on"&&raw(o)},
+    raw
+  };
+}
+
+/* ===================================================================================== liaison de démonstration */
+function DemoLink(h){
+  const D={t1:{online:true,battery:82,charging:false,volume:55,media:"Film · Le Voyage de Chihiro",playing:true,locked:false},
+           t2:{online:true,battery:64,charging:true,volume:40,media:"Musique · Digital Love",playing:false,locked:true}};
+  const T=[];let iv=null,stopped=false;
+  const later=(f,ms)=>{const id=setTimeout(()=>{if(!stopped)f()},ms);T.push(id)};
+  const push=d=>h.msg({t:"state",dev:d,...D[d]});
+  return{
+    start(){stopped=false;h.status("connecting");
+      later(()=>{h.status("on");h.msg({t:"ready"});h.msg({t:"snapshot",devs:JSON.parse(JSON.stringify(D))});h.msg({t:"log",dev:"t1",level:"info",msg:"connectée (démo)"});h.msg({t:"log",dev:"t2",level:"info",msg:"connectée (démo)"})},650);
+      iv=setInterval(()=>{for(const d of["t1","t2"]){const s=D[d];s.battery=clamp(s.battery+(s.charging?.4:-.15)+(Math.random()-.5)*.1,3,100);push(d)}},2500)},
+    stop(){stopped=true;clearInterval(iv);T.forEach(clearTimeout);T.length=0},
+    kick(){},reset(){},
+    send(m){
+      if(S.conn!=="on")return false;
+      if(m.t==="ping"){later(()=>h.msg({t:"pong",id:m.id,t0:m.t0,ts:Date.now()+37}),30+Math.random()*30);return true}
+      if(m.t!=="cmd")return true;
+      const ds=m.target==="both"?["t1","t2"]:[m.target];
+      ds.forEach((d,i)=>{
+        later(()=>{
+          const s=D[d];let ok=true,msg="";
+          if(m.cmd==="volume")s.volume=clamp(m.value,0,100);
+          else if(m.cmd==="unlock")s.locked=false;
+          else if(m.cmd==="lock"){s.locked=true;s.playing=false}
+          else if(m.cmd==="sync"){const wait=Math.max(0,(m.at||0)-(Date.now()+37));later(()=>{s.playing=m.action==="play";push(d)},wait)}
+          else if(m.cmd==="tts")later(()=>h.msg({t:"log",dev:d,level:"info",msg:"annonce lue : « "+m.text+" »"}),500);
+          h.msg({t:"ack",id:m.id,dev:d,ok,err:msg});push(d);
+        },120+Math.random()*220+i*60);
+      });
+      return true;
+    }
+  };
+}
+
+/* ===================================================================================== protocole : messages reçus */
+function onMsg(m){
+  switch(m.t){
+    case"paired":cfg.token=m.token||cfg.token;cfg.code="";save();setConn("on");log("sys","Jumelage réussi : cet iPhone est enregistré");link.reset();link.send({t:"ping",id:uid(),t0:Date.now()});break;
+    case"ready":case"hello_ok":if(S.conn!=="on"){setConn("on");log("sys",cfg.demo?"Mode démonstration actif":"Connecté au serveur");link.send({t:"ping",id:uid(),t0:Date.now()})}break;
+    case"pong":{const rtt=Date.now()-m.t0;S.rtt=S.rtt==null?rtt:S.rtt*.6+rtt*.4;if(m.ts!=null){const off=m.ts-(m.t0+rtt/2);S.offset=S.offset?S.offset*.6+off*.4:off}if(S.conn!=="on")setConn("on");else setConn("on");break}
+    case"snapshot":if(S.conn!=="on")setConn("on");for(const d of["t1","t2"])if(m.devs&&m.devs[d])applyState(d,m.devs[d]);break;
+    case"state":if(S.conn!=="on")setConn("on");applyState(m.dev,m);break;
+    case"ack":{const p=S.pending.get(m.id);if(!p)break;const ms=Math.round(performance.now()-p.t0);p.got.add(m.dev);
+      log(m.ok===false?"err":"rx",`${m.ok===false?"✗":"✓"} ${NAMES[m.dev]||m.dev} · ${p.label} (${ms} ms)${m.err?" — "+m.err:""}`);
+      if(p.got.size>=p.n)S.pending.delete(m.id);break}
+    case"log":log(m.level==="err"||m.level==="error"?"err":"rx",`${NAMES[m.dev]||"Serveur"} · ${m.msg}`);break;
+    case"error":{log("err","Serveur : "+(m.msg||m.code||"erreur"));if(m.code==="auth"||m.code==="token"){cfg.token="";save();setConn("off","Jumelage à refaire (⚙)")}else if(S.conn!=="on")setConn("off",m.msg||"Connexion refusée");break}
+  }
+}
+
+/* ===================================================================================== commandes */
+const targetLabel=t=>NAMES[t];
+function cmd(name,params={},label,quiet){
+  const id=uid(),msg={t:"cmd",id,cmd:name,target:S.target,ts:Date.now()+S.offset,...params};
+  if(!link.send(msg)){
+    if(!quiet){toast("Non envoyé : télécommande déconnectée","err");log("err",`${label} → ${targetLabel(S.target)} : non envoyé (déconnecté)`)}
+    return false;
+  }
+  if(!quiet){
+    log("tx",`${label} → ${targetLabel(S.target)}`);
+    S.pending.set(id,{t0:performance.now(),label,n:targets().length,got:new Set()});
+    setTimeout(()=>{if(S.pending.has(id)){S.pending.delete(id);log("sys",`${label} : aucune confirmation reçue`)}},8000);
+  }
+  return id;
+}
+const anyPlaying=()=>targets().some(d=>S.tabs[d].playing);
+function drawPrimary(){
+  $("#syncIc").innerHTML=ic(anyPlaying()?"pause":"play");
+  $("#syncSub").textContent=anyPlaying()?"Lecture en cours : mise en pause synchronisée":"Démarrage simultané des tablettes";
+}
+function doSync(){
+  const action=anyPlaying()?"pause":"play",lead=Math.max(500,Math.round((S.rtt||80)*2+250)),at=Date.now()+S.offset+lead;
+  const id=cmd("sync",{action,at,lead},action==="play"?"Lancer la synchro":"Pause synchronisée");
+  if(id)toast(action==="play"?`Départ dans ${(lead/1000).toFixed(1).replace(".",",")} s`:"Pause envoyée","ok");
+}
+
+/* volume : envoi fluide (≈12 commandes/s) + valeur finale à la fin du geste */
+let volT=0,volLast=0;
+function setVol(v,silent){const r=$("#vol");v=clamp(Math.round(v),0,100);r.value=v;r.style.setProperty("--v",v+"%");$("#volV").textContent=v+" %";}
+function sendVol(final){
+  const v=+$("#vol").value,now=Date.now();
+  if(final){clearTimeout(volT);cmd("volume",{value:v},`Volume ${v} %`);volLast=now;return}
+  if(now-volLast>=80){volLast=now;cmd("volume",{value:v},"",true)}
+  else{clearTimeout(volT);volT=setTimeout(()=>{volLast=Date.now();cmd("volume",{value:+$("#vol").value},"",true)},80)}
+}
+
+/* annonces vocales */
+const SAYS=[
+  {k:"seat",l:"Ceinture de sécurité",x:"Veuillez attacher vos ceintures de sécurité."},
+  {k:"food",l:"Ne pas manger",x:"Il est interdit de manger dans le véhicule."},
+  {k:"voldn",l:"Baisser le volume",x:"Merci de baisser le volume."}
+];
+function speak(text,label){
+  text=text.trim();if(!text)return false;
+  return cmd("tts",{text,lang:"fr-FR"},label||"Annonce : « "+(text.length>46?text.slice(0,45)+"…":text)+" »");
+}
+
+/* ===================================================================================== liaison active */
+const handlers={status:setConn,msg:onMsg};
+let link=null;
+function useLink(){
+  if(link)link.stop();
+  S.rtt=null;S.offset=0;for(const d of["t1","t2"])S.tabs[d]=blank();drawTabs();
+  link=cfg.demo?DemoLink(handlers):WsLink(handlers);
+  link.start();
+}
+
+/* ===================================================================================== feuille de réglages */
+function openSheet(){
+  $("#demo").setAttribute("aria-checked",!!cfg.demo);$("#cUrl").value=cfg.url;$("#cCode").value=cfg.code;$("#cName").value=cfg.name;
+  $("#cCodeS").textContent=cfg.token?"Cet iPhone est déjà jumelé (laissez vide).":"Obtenu au démarrage du serveur, valable 10 minutes.";
+  checkWarn();$("#sheet").hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>$("#sheet").dataset.open="true"));
+}
+function closeSheet(){const s=$("#sheet");s.dataset.open="false";setTimeout(()=>{s.hidden=true},380)}
+function checkWarn(){
+  const u=$("#cUrl").value.trim(),w=$("#warn");let m="";
+  if(u&&location.protocol==="https:"&&/^ws:\/\//i.test(u))m="Cette page est en https : le navigateur refuse une adresse ws:// non sécurisée. Utilisez wss:// (serveur Termux avec certificat).";
+  else if(u&&!/^wss?:\/\//i.test(u))m="L’adresse doit commencer par wss:// (ou ws://).";
+  w.hidden=!m;w.textContent=m;
+}
+
+/* ===================================================================================== initialisation */
+function init(){
+  fill("gear","gear");fill("icCtl","ctl");fill("icUn","unlock");fill("icLk","lock");fill("icVd","vd");fill("icVu","vu");fill("icSay","say");fill("jChev","chev");$("#sendBtn").innerHTML=ic("send")+"Envoyer";
+  $("#grid3").innerHTML=SAYS.map((s,i)=>`<button class="say" data-i="${i}"><span class="ring">${ic(s.k)}</span>${s.l}</button>`).join("");
+  buildTabs();drawTabs();setVol(50);drawLog();
+  /* cible */
+  $$("#seg button").forEach((b,i)=>b.onclick=()=>{
+    S.target=b.dataset.t;$("#seg").style.setProperty("--k",i);$$("#seg button").forEach(x=>x.setAttribute("aria-checked",x===b));
+    const ds=targets();let v=null;for(const d of ds)if(S.tabs[d].volume!=null){v=S.tabs[d].volume;break}if(v!=null)setVol(v);drawTabs();
+  });
+  /* commandes */
+  $("#sync").onclick=doSync;
+  $("#unlock").onclick=()=>{if(cmd("unlock",{},"Autoriser le contenu"))toast("Contenu autorisé","ok")};
+  $("#lock").onclick=()=>{if(cmd("lock",{},"Stop / Bloquer"))toast("Lecture stoppée, contenu bloqué","ok")};
+  const vr=$("#vol");
+  vr.addEventListener("input",()=>{S.drag=true;setVol(vr.value);sendVol(false)});
+  const endDrag=()=>{if(!S.drag)return;S.drag=false;sendVol(true)};
+  vr.addEventListener("change",endDrag);vr.addEventListener("pointerup",endDrag);vr.addEventListener("touchend",endDrag);
+  /* annonces */
+  $("#grid3").addEventListener("click",e=>{
+    const b=e.target.closest(".say");if(!b)return;const s=SAYS[+b.dataset.i];
+    if(speak(s.x,"Annonce : "+s.l)){b.classList.add("sent");setTimeout(()=>b.classList.remove("sent"),1400)}
+  });
+  const inp=$("#say"),sb=$("#sendBtn");
+  inp.addEventListener("input",()=>{sb.disabled=!inp.value.trim()});
+  $("#free").addEventListener("submit",e=>{e.preventDefault();if(speak(inp.value)){inp.value="";sb.disabled=true;inp.blur()}});
+  /* journal */
+  $("#jToggle").onclick=()=>setDrawer(!J.open);
+  $("#jFilter").onclick=e=>{J.only=!J.only;e.currentTarget.setAttribute("aria-pressed",J.only);drawLog()};
+  $("#jClear").onclick=()=>{J.items.length=0;$("#jCnt").textContent="0";drawLog()};
+  let y0=null;const dh=$("#jToggle");
+  dh.addEventListener("touchstart",e=>{y0=e.touches[0].clientY},{passive:true});
+  dh.addEventListener("touchend",e=>{if(y0==null)return;const dy=e.changedTouches[0].clientY-y0;y0=null;if(Math.abs(dy)>28){setDrawer(dy<0);e.preventDefault()}});
+  /* pastille : reconnexion manuelle */
+  $("#pill").onclick=()=>{if(S.conn!=="on"){log("sys","Reconnexion demandée");useLink()}};
+  /* réglages */
+  $("#gear").onclick=openSheet;$$("[data-close]",$("#sheet")).forEach(b=>b.onclick=closeSheet);
+  $("#demo").onclick=e=>{const t=e.currentTarget;t.setAttribute("aria-checked",t.getAttribute("aria-checked")!=="true")};
+  $("#cUrl").addEventListener("input",checkWarn);
+  $("#cSave").onclick=()=>{
+    cfg.demo=$("#demo").getAttribute("aria-checked")==="true";cfg.url=$("#cUrl").value.trim();cfg.code=$("#cCode").value.replace(/\D/g,"").slice(0,6);cfg.name=($("#cName").value.trim()||"iPhone").slice(0,24);
+    save();closeSheet();log("sys",cfg.demo?"Mode démonstration":"Connexion à "+cfg.url);useLink();
+  };
+  $("#forget").onclick=()=>{cfg.token="";cfg.code="";save();toast("Jumelage oublié","ok");log("sys","Jumelage oublié sur cet iPhone");$("#cCodeS").textContent="Obtenu au démarrage du serveur, valable 10 minutes."};
+  /* iOS : invite plein écran */
+  const standalone=navigator.standalone||matchMedia("(display-mode: standalone)").matches;
+  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(ios&&!standalone&&!cfg.hintOff){$("#hint").hidden=false;$("#hintI").innerHTML=ic("share")}
+  $("#hintX").onclick=()=>{$("#hint").hidden=true;cfg.hintOff=true;save()};
+  /* iOS suspend les connexions en arrière-plan : on reprend au retour */
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&link)link.kick()});
+  addEventListener("online",()=>{log("sys","Réseau retrouvé");link&&link.kick()});
+  addEventListener("offline",()=>log("err","Réseau perdu"));
+  addEventListener("pageshow",e=>{if(e.persisted&&link)link.kick()});
+  document.addEventListener("gesturestart",e=>e.preventDefault());
+  setInterval(drawTabs,5000);   // marque « pas de données » quand une tablette se tait
+  log("sys","Application démarrée");
+  useLink();
+  if("serviceWorker"in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+init();
+/* accès pour les tests et la console */
+window.MGRemote={S,cfg:()=>cfg,J,cmd,speak,doSync,useLink,link:()=>link};
+})();
+</script>
+</body>
+</html>
