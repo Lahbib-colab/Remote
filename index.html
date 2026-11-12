@@ -67,6 +67,7 @@ main{padding:calc(var(--st) + var(--top) + 16px) calc(16px + var(--sr)) calc(var
 .tcard.stale{opacity:.62}
 .thead{display:flex;align-items:center;justify-content:space-between;gap:6px}
 .thead b{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.nm{display:block;margin:-8px 0 -2px;font-size:11.5px;color:var(--mut2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:0}.nm:empty{display:none}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--mut2)}.tcard.up .dot{background:var(--ok);box-shadow:0 0 10px rgba(52,211,153,.8)}
 .row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
 .row b{margin-left:auto;font-weight:650;color:var(--txt);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -276,7 +277,7 @@ if(cfg.demo===null){cfg.demo=!cfg.url;save()}     // premier lancement sans serv
 
 /* ===================================================================================== état */
 const NAMES={t1:"Tablette 1",t2:"Tablette 2",both:"Les 2 tablettes"};
-const blank=()=>({online:false,battery:null,charging:false,volume:null,media:"",playing:false,locked:null,seen:0});
+const blank=()=>({online:false,name:"",battery:null,charging:false,volume:null,media:"",playing:false,locked:null,seen:0});
 const S={conn:"off",why:"",rtt:null,offset:0,target:"both",tabs:{t1:blank(),t2:blank()},pending:new Map(),drag:false};
 const targets=()=>S.target==="both"?["t1","t2"]:[S.target];
 
@@ -303,7 +304,7 @@ function toast(msg,kind=""){const t=$("#toast");t.textContent=msg;t.className="o
 /* ===================================================================================== télémétrie */
 function buildTabs(){
   $("#tabs").innerHTML=["t1","t2"].map(d=>`<article class="tcard glass" data-dev="${d}" data-on="true">
-    <div class="thead"><b>${NAMES[d]}</b><span class="dot"></span></div>
+    <div class="thead"><b>${NAMES[d]}</b><span class="dot"></span></div><small class="nm" data-nm></small>
     <div class="row" aria-label="Batterie"><span class="bat" data-bat><i></i></span>${ic("bolt","bolt")}<b data-bv>—</b></div>
     <div class="row" aria-label="Volume">${ic("vol")}<span class="vbar" data-vb><i></i></span><b data-vv>—</b></div>
     <div class="media" data-media><small>En cours</small><span>—</span></div>
@@ -318,13 +319,14 @@ function drawTab(d){
   b.style.setProperty("--p",p);b.className="bat"+(s.battery!=null&&p<20?" low":s.battery!=null&&p<40?" mid":"");
   $("[data-bv]",c).textContent=s.battery==null?"—":p+" %";
   const v=s.volume==null?0:clamp(Math.round(s.volume),0,100);$("[data-vb]",c).style.setProperty("--p",v);$("[data-vv]",c).textContent=s.volume==null?"—":v+" %";
-  $("[data-media] span",c).textContent=!s.online&&s.seen?"Hors ligne":s.media||(s.online?"Aucun média":"—");
-  $("[data-chips]",c).innerHTML=(s.online?`<span class="chip ${s.playing?"on":""}">${s.playing?"Lecture":"Pause"}</span>`:`<span class="chip bad">Hors ligne</span>`)+(s.locked==null?"":`<span class="chip ${s.locked?"bad":"ok"}">${s.locked?"Bloqué":"Autorisé"}</span>`);
+  $("[data-nm]",c).textContent=s.name&&s.name!==NAMES[d]?s.name:"";
+  $("[data-media] span",c).textContent=!s.seen?"Aucune donnée pour l’instant":!s.online?"Hors ligne":s.media||"Aucun média";
+  $("[data-chips]",c).innerHTML=(!s.seen?`<span class="chip">Non connectée</span>`:s.online?`<span class="chip ${s.playing?"on":""}">${s.playing?"Lecture":"Pause"}</span>`:`<span class="chip bad">Hors ligne</span>`)+(s.locked==null?"":`<span class="chip ${s.locked?"bad":"ok"}">${s.locked?"Bloqué":"Autorisé"}</span>`);
 }
 const drawTabs=()=>{drawTab("t1");drawTab("t2");drawPrimary()};
 function applyState(d,m){
   if(!S.tabs[d])return;const s=S.tabs[d];
-  for(const k of ["battery","charging","volume","media","playing","locked"])if(m[k]!==undefined)s[k]=m[k];
+  for(const k of ["name","battery","charging","volume","media","playing","locked"])if(m[k]!==undefined)s[k]=m[k];
   s.online=m.online!==undefined?!!m.online:true;s.seen=Date.now();drawTab(d);drawPrimary();
   if(d&&!S.drag&&targets().includes(d)&&m.volume!=null)setVol(m.volume,true);
 }
@@ -421,6 +423,7 @@ function onMsg(m){
     case"snapshot":if(S.conn!=="on")setConn("on");for(const d of["t1","t2"])if(m.devs&&m.devs[d])applyState(d,m.devs[d]);break;
     case"state":if(S.conn!=="on")setConn("on");applyState(m.dev,m);break;
     case"ack":{const p=S.pending.get(m.id);if(!p)break;const ms=Math.round(performance.now()-p.t0);p.got.add(m.dev);
+      if(m.ok===false&&/aucune tablette appairée/.test(m.err||"")){log("sys",`${NAMES[m.dev]||m.dev} · non appairée : ignorée`);if(p.got.size>=p.n)S.pending.delete(m.id);break}
       log(m.ok===false?"err":"rx",`${m.ok===false?"✗":"✓"} ${NAMES[m.dev]||m.dev} · ${p.label} (${ms} ms)${m.err?" — "+m.err:""}`);
       if(p.got.size>=p.n)S.pending.delete(m.id);break}
     case"log":log(m.level==="err"||m.level==="error"?"err":"rx",`${NAMES[m.dev]||"Serveur"} · ${m.msg}`);break;

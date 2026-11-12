@@ -69,9 +69,11 @@ Commandes (`cmd`) : `sync` (`action`: `play` ou `pause`, `at`: heure d'exécutio
 
 **Synchro** : le serveur transmet `sync` aux tablettes ; chaque tablette lance ou met en pause à l'instant `at` (en corrigeant le décalage de sa propre horloge avec le serveur). `lead` vaut au moins 500 ms (2 × latence + 250 ms).
 
-## Ce qui reste à faire côté serveur et tablettes
+## Côté serveur et tablettes
 
-Cette livraison est **uniquement l'interface**. Le serveur `sync-server.js` et l'application des tablettes ne comprennent pas encore le rôle `remote` : il faut y ajouter le jumelage de ce 3e appareil, le relais des commandes (`sync`, `unlock`, `lock`, `volume`, `tts`), l'envoi de `state`/`ack`, et la lecture des annonces avec `speechSynthesis` (`fr-FR`). Le faux serveur `test/serveur-factice.js` montre un comportement de référence.
+Le serveur `sync-server.js` et l'application des tablettes (**build 42 ou plus**) comprennent le rôle `remote` : jumelage (sans compter dans la limite de deux tablettes), relais des commandes avec validation, accusés par tablette, état en direct, horloge. Mode d'emploi, comportement des commandes, déblocage de secours et test avec une seule tablette : `mg-sync-server/docs/TELECOMMANDE.md`.
+
+Messages supplémentaires entre serveur et tablettes (internes) : `rcmd` (commande relayée), `rack` (accusé), `tel` (télémétrie), `rlog` (journal), `remote` (une télécommande écoute : oui/non).
 
 ## Tests
 
