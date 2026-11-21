@@ -164,6 +164,9 @@ input[type=range]:focus-visible{outline:2px solid var(--acc2);outline-offset:4px
 .tg[aria-checked=true]{background:var(--acc)}.tg[aria-checked=true]::after{transform:translateX(20px)}
 .btns{display:flex;gap:10px;margin-top:16px}.btns button{flex:1;height:52px;border-radius:16px;font-weight:650;background:var(--glass2);border:1px solid var(--line)}
 .btns .go{background:var(--acc);border-color:transparent;box-shadow:0 10px 26px -10px var(--acc-glow);color:#fff}
+.srvbox{margin:-4px 0 12px;font-size:13px;color:var(--mut)}.srvbox #srvS{padding-left:18px;position:relative;line-height:1.4}
+.srvbox #srvS::before{content:"";position:absolute;left:0;top:.35em;width:10px;height:10px;border-radius:50%;background:#9aa3b2}.srvbox #srvS[data-s=up]::before{background:#34d399}.srvbox #srvS[data-s=down]::before{background:#f87171}
+.srvb{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.srvb button{min-height:44px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:inherit;font:inherit;font-size:14px}
 .warn{font-size:13px;color:#fde68a;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:12px;padding:10px 12px;margin-top:10px}
 .forget{display:block;margin:16px auto 0;color:var(--bad);font-size:14px;font-weight:600;padding:8px}
 
@@ -229,6 +232,7 @@ input[type=range]:focus-visible{outline:2px solid var(--acc2);outline-offset:4px
     <p class="lead">Connexion au serveur de synchronisation MG.</p>
     <div class="sw"><div><b>Mode démonstration</b><small>Simule deux tablettes, sans serveur.</small></div><button class="tg" id="demo" role="switch" aria-checked="false" aria-label="Mode démonstration"></button></div>
     <label class="fld"><span>Serveur</span><input id="cUrl" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="wss://192.168.43.1:8443/sync"><small>Adresse affichée par <b>infos-serveur.sh</b> sur la tablette 1.</small></label>
+    <div class="srvbox"><div id="srvS" data-s="?">…</div><div class="srvb"><button type="button" id="srvCheck">Vérifier</button><button type="button" id="srvCopy">Copier la commande de démarrage</button></div></div>
     <label class="fld"><span>Code de jumelage</span><input id="cCode" type="text" inputmode="numeric" maxlength="6" placeholder="6 chiffres (première connexion)" autocomplete="off"><small id="cCodeS">Inutile une fois l’iPhone jumelé.</small></label>
     <label class="fld"><span>Nom de cet iPhone</span><input id="cName" type="text" maxlength="24" placeholder="iPhone"></label>
     <div class="warn" id="warn" hidden></div>
@@ -273,6 +277,7 @@ const DEF={url:"",code:"",id:"",token:"",name:"iPhone",demo:null,hintOff:false};
 let cfg={...DEF};try{cfg={...DEF,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch{}};
 if(!cfg.id){cfg.id="rm-"+uid();save()}
+if(!cfg.url&&/^\/remote\//.test(location.pathname)&&/^https?:$/.test(location.protocol)){cfg.url=(location.protocol==="https:"?"wss://":"ws://")+location.host+"/sync";cfg.demo=false;save()}   // ouverte depuis le serveur : adresse connue
 if(cfg.demo===null){cfg.demo=!cfg.url;save()}     // premier lancement sans serveur : démonstration
 
 /* ===================================================================================== état */
@@ -332,11 +337,30 @@ function applyState(d,m){
 }
 
 /* ===================================================================================== connexion : pastille d'état */
+/* ---- état du serveur local (/healthz). Une page web ne peut pas démarrer Termux : on dit seulement où en est le serveur. ---- */
+const SRV_CMD="cd ~/mg-sync-server && ./start-termux.sh";
+let srvSt="?",srvT=0,srvBusy=false;
+function srvBase(u){try{return new URL((u||cfg.url||"").trim().replace(/^ws(s?):/i,"http$1:")).origin}catch{return ""}}
+async function srvProbe(u,force){
+  const b=srvBase(u);if(!b){srvSt="?";srvPaint();return srvSt}
+  if(srvBusy||(!force&&Date.now()-srvT<4000))return srvSt;
+  srvBusy=true;const ac=new AbortController(),to=setTimeout(()=>ac.abort(),2500);
+  try{const r=await fetch(b+"/healthz",{cache:"no-store",signal:ac.signal});const j=await r.json();srvSt=j&&j.mgsync?"up":"down"}catch{srvSt="down"}
+  clearTimeout(to);srvBusy=false;srvT=Date.now();srvPaint();
+  if(srvSt==="down"&&S.conn!=="on"&&!cfg.demo)$("#sub").textContent="Serveur injoignable : démarrez-le sur la tablette 1";
+  return srvSt;
+}
+function srvPaint(){
+  const e=$("#srvS");if(!e)return;
+  const t=srvSt==="up"?"Serveur local en marche":srvSt==="down"?"Serveur injoignable : sur la tablette 1, touchez le raccourci MG-Serveur (Termux), ou lancez la commande ci-dessous, et vérifiez le point d’accès Wi-Fi.":"État du serveur inconnu (adresse vide ou en cours de vérification)";
+  e.textContent=t;e.dataset.s=srvSt;
+}
 function setConn(c,why=""){
   S.conn=c;S.why=why;
   const pill=$("#pill"),T=$("#pillT");
   const on=c==="on",wait=c==="connecting"||c==="handshake"||c==="retry";
   pill.dataset.s=on?"on":wait?"wait":"off";
+  if(c==="retry"&&!cfg.demo)srvProbe(null,false);
   T.textContent=on?"Connecté":c==="retry"?"Reconnexion…":wait?"Connexion…":"Déconnecté";
   $("#sub").textContent=on?[cfg.demo?"démonstration":"",S.rtt!=null?Math.round(S.rtt)+" ms":""].filter(Boolean).join(" · "):why;
 }
@@ -492,7 +516,7 @@ function useLink(){
 function openSheet(){
   $("#demo").setAttribute("aria-checked",!!cfg.demo);$("#cUrl").value=cfg.url;$("#cCode").value=cfg.code;$("#cName").value=cfg.name;
   $("#cCodeS").textContent=cfg.token?"Cet iPhone est déjà jumelé (laissez vide).":"Obtenu au démarrage du serveur, valable 10 minutes.";
-  checkWarn();$("#sheet").hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>$("#sheet").dataset.open="true"));
+  checkWarn();srvPaint();if(!cfg.demo)srvProbe($("#cUrl").value,true);$("#sheet").hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>$("#sheet").dataset.open="true"));
 }
 function closeSheet(){const s=$("#sheet");s.dataset.open="false";setTimeout(()=>{s.hidden=true},380)}
 function checkWarn(){
@@ -541,6 +565,9 @@ function init(){
   $("#gear").onclick=openSheet;$$("[data-close]",$("#sheet")).forEach(b=>b.onclick=closeSheet);
   $("#demo").onclick=e=>{const t=e.currentTarget;t.setAttribute("aria-checked",t.getAttribute("aria-checked")!=="true")};
   $("#cUrl").addEventListener("input",checkWarn);
+  let srvD;$("#cUrl").addEventListener("input",()=>{clearTimeout(srvD);srvSt="?";srvPaint();srvD=setTimeout(()=>srvProbe($("#cUrl").value,true),700)});
+  $("#srvCheck").onclick=()=>{toast("Vérification…");srvProbe($("#cUrl").value,true)};
+  $("#srvCopy").onclick=async()=>{try{await navigator.clipboard.writeText(SRV_CMD);toast("Commande copiée : à coller dans Termux")}catch{toast(SRV_CMD)}};
   $("#cSave").onclick=()=>{
     cfg.demo=$("#demo").getAttribute("aria-checked")==="true";cfg.url=$("#cUrl").value.trim();cfg.code=$("#cCode").value.replace(/\D/g,"").slice(0,6);cfg.name=($("#cName").value.trim()||"iPhone").slice(0,24);
     save();closeSheet();log("sys",cfg.demo?"Mode démonstration":"Connexion à "+cfg.url);useLink();
